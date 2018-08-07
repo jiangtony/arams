@@ -1,0 +1,21 @@
+div.gallery {
+    margin: 5px;
+    border: 1px hidden #ccc;
+    float: left;
+    width: 120px;
+}
+
+div.gallery:hover {
+    border: 1px solid #777;
+}
+
+div.gallery img {
+    width: 100%;
+    height: auto;
+}
+
+div.desc {
+    text-align: center;
+    font-family: Verdana, Geneva, sans-serif;
+    font-weight: 600;
+}

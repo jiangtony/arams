@@ -19,10 +19,13 @@ class Champion(db.Model):
     def __repr__(self):
         return f"Champion('{self.champion_name}', '{self.champion_id}', '{self.wins}', '{self.losses}')"
 
-
+# match IDs
 class Ids(db.Model):
     id = db.Column(db.Integer, primary_key = True)
-    match_id = db.Column(db.Integer, unique = True)
+    match_id = db.Column(db.String(128), unique = True)
 
     def __init__(self, match_id):
         self.match_id = match_id
+
+    def __repr__(self):
+        return f"Id('{self.match_id}')"

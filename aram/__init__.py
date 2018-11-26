@@ -11,5 +11,4 @@ dotenv_path = join(dirname(dirname(__file__)), '.env')
 load_dotenv(dotenv_path)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI")
 
-
 from aram import views

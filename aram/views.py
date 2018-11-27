@@ -44,13 +44,24 @@ for game in featured_games['gameList']:
     ts = int(time.time() * 1000)
     one_day_ago = int(ts - 8.64e+7)
     # print(one_day_ago)
+
+    ###########################################
+    ## for testing purposes. delete all match IDs in database
+    try:
+        db.session.query(Ids).delete()
+        db.session.commit()
+    except:
+        print('error clearing match id db')
+        pass
+    ###########################################
+
     if game['gameMode'] == 'ARAM' and game['gameType'] == 'MATCHED_GAME':
         # print(game)
         # Look up each player in the game
         for player in game['participants']:
             # summoner names may have special characters
             summoner_name = urllib.parse.quote(player['summonerName'])
-            print(summoner_name)
+            print("Summoner Name: ", summoner_name)
 
             # Get the player's account ID
             summoner_lookup_url = "https://na1.api.riotgames.com/lol/summoner/v3/summoners/by-name/" + summoner_name + "?api_key=" + RIOT_API_KEY
@@ -63,16 +74,15 @@ for game in featured_games['gameList']:
             # print(match_history_url)
             match_history = (requests.get(match_history_url)).json()
 
-            print(match_history)
+            print("Match History: ", match_history)
 
             # print(db.session.query(Ids).all())
-            # all_ids = db.session.query(Ids).all()
-            # db.session.delete(all_ids)
-            # db.session.commit()
+            
 
             try:
                 match_history['totalGames']
             except KeyError:
+                print("error retrieving match history")
                 continue
 
             for match in match_history['matches']:
@@ -84,25 +94,20 @@ for game in featured_games['gameList']:
                     db.session.commit()
                     # Use the gameId to see who won/lost the game - record win/loss for all 10 participants
                     # match_url = "https://na1.api.riotgames.com/lol/match/v3/matches/" + game_id_str + "?api_key=" + RIOT_API_KEY
-                    # match_data = requests.get(match_url)
-                    # if match_data.status_code == 200:
-                    #     match_data = match_data.json()
-                    #     print(match_data)
-                    #     blue_team = match_data['teams'].items()
-                    #     print(blue_team)
+                    test_match_url = "https://na1.api.riotgames.com/lol/match/v3/matches/2919717029?api_key=" + RIOT_API_KEY
+                    print("Match url: ", test_match_url)
+                    match_data = requests.get(test_match_url)
+                    if match_data.status_code == 200:
+                        match_data = match_data.json()
+                        print(match_data['teams'][0])
+                        if match_data['teams'][0]['win'] == 'Win':
+                            print('blue wins')
+                        else:
+                            print('red wins')
+                break
 
-                # print(db.session.query(Ids).all())
             print(db.session.query(Ids).all())
 
             break
 
-        # print(match_url)
-        # print((requests.get(match_url)).json())
-        # match_data = requests.get(match_url)
-        # print(match_data.status_code)
-        # if match_data.status_code == 200:
-        #     match_data = match_data.json()
-        #     print(match_data)
-        #     blue_team = match_data['teams'].items()
-        #     print(blue_team)
     break

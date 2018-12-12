@@ -18,9 +18,19 @@ import time
 
 RIOT_API_KEY = os.environ.get("RIOT_API_KEY")
 
+
+### testing ####
+# try: 
+#     db.session.query(Champion).delete()
+#     db.session.commit()
+#     print("successfully cleared champ db")
+# except:
+#     print("couldn't clear champion db")
+###########
+
 # Initialize champions into database
 if db.session.query(Champion).first() == None:
-    champ_url = "https://ddragon.leagueoflegends.com/cdn/8.23.1/data/en_US/champion.json"
+    champ_url = "https://ddragon.leagueoflegends.com/cdn/8.24.1/data/en_US/champion.json"
     champions = (requests.get(champ_url)).json()
     # print(type(champions['data']))
     # print(champions.items())
@@ -34,6 +44,8 @@ if db.session.query(Champion).first() == None:
         db.session.add(champ)
 
     db.session.commit()
+
+# print(db.session.query(Champion).all())
 
 featured_games_url = "https://na1.api.riotgames.com/lol/spectator/v3/featured-games?api_key=" + RIOT_API_KEY
 featured_games = (requests.get(featured_games_url)).json()
@@ -50,10 +62,12 @@ for game in featured_games['gameList']:
     try:
         db.session.query(Ids).delete()
         db.session.commit()
+        print('successfully cleared match id db')
     except:
         print('error clearing match id db')
         pass
     ###########################################
+
 
     if game['gameMode'] == 'ARAM' and game['gameType'] == 'MATCHED_GAME':
         # print(game)
@@ -66,12 +80,12 @@ for game in featured_games['gameList']:
             # Get the player's account ID
             summoner_lookup_url = "https://na1.api.riotgames.com/lol/summoner/v3/summoners/by-name/" + summoner_name + "?api_key=" + RIOT_API_KEY
             summoner_info = (requests.get(summoner_lookup_url)).json()
-            # print(summoner_info['accountId'])
+            print(summoner_info['accountId'])
 
             # Use the account ID to look up their match history
             # get a list of their aram games from the last 24 hours 
             match_history_url = "https://na1.api.riotgames.com/lol/match/v3/matchlists/by-account/" + str(summoner_info['accountId']) + "?beginTime=" + str(one_day_ago) + "&queue=450&api_key=" + RIOT_API_KEY
-            # print(match_history_url)
+            print(match_history_url)
             match_history = (requests.get(match_history_url)).json()
 
             print("Match History: ", match_history)
@@ -85,6 +99,7 @@ for game in featured_games['gameList']:
                 print("error retrieving match history")
                 continue
 
+            # need to fix double counting matches due to resetting match id db
             for match in match_history['matches']:
                 # Query the database for the game id and add it if it does not exist
                 game_id_str = str(match['gameId'])
@@ -93,21 +108,35 @@ for game in featured_games['gameList']:
                     db.session.add(game_id)
                     db.session.commit()
                     # Use the gameId to see who won/lost the game - record win/loss for all 10 participants
-                    # match_url = "https://na1.api.riotgames.com/lol/match/v3/matches/" + game_id_str + "?api_key=" + RIOT_API_KEY
-                    test_match_url = "https://na1.api.riotgames.com/lol/match/v3/matches/2919717029?api_key=" + RIOT_API_KEY
-                    print("Match url: ", test_match_url)
-                    match_data = requests.get(test_match_url)
+                    match_url = "https://na1.api.riotgames.com/lol/match/v3/matches/" + game_id_str + "?api_key=" + RIOT_API_KEY
+                    
+                    print("Match url: ", match_url)
+                    match_data = requests.get(match_url)
                     if match_data.status_code == 200:
                         match_data = match_data.json()
-                        print(match_data['teams'][0])
-                        if match_data['teams'][0]['win'] == 'Win':
-                            print('blue wins')
-                        else:
-                            print('red wins')
+
+                        for participants in match_data['participants']:
+                            # print(participants['stats']['win'])
+                            if participants['stats']['win'] == True:
+                                print(participants['championId'], " wins")
+                                # Increments the # of wins the the champ db
+                                winning_champ = db.session.query(Champion).filter_by(champion_id=participants['championId']).first()
+                                winning_champ.wins+=1
+                            else:
+                                print(participants['championId'], " loses")
+                                # Increments the # of losses the the champ db
+                                losing_champ = db.session.query(Champion).filter_by(champion_id=participants['championId']).first()
+                                losing_champ.losses+=1
+
+                            db.session.commit()
+
                 break
 
             print(db.session.query(Ids).all())
-
+            print(db.session.query(Champion).all())
             break
+
+    else:
+        continue
 
     break
